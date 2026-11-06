@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /bag.html
+Sitemap: https://madhavnikhunjcollection.com/sitemap.xml

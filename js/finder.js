@@ -1,6 +1,6 @@
 // "Find My Poshak": three steps — choose designs, add details, review the enquiry.
 import { store, spa, paths } from './core.js';
-import { buildMessage, wireSend } from './enquiry.js';
+import { buildMessage, wireSend, sizeFrom, wireSize } from './enquiry.js';
 
 export function init({ signal } = {}) {
   const form = document.querySelector('[data-finder]');
@@ -11,7 +11,7 @@ export function init({ signal } = {}) {
     const status = form.querySelector('[data-status]');
     const error = form.querySelector('[data-error="0"]');
     const chosen = () => [...form.querySelectorAll('[name=design]:checked')].map((c) => c.value);
-    const lines = () => chosen().map((code) => ({ code, qty: 1, size: form.elements.size.value.trim() }));
+    const lines = () => chosen().map((code) => ({ code, qty: 1, size: sizeFrom(form) }));
     let at = 0;
 
     function go(n) {
@@ -34,6 +34,7 @@ export function init({ signal } = {}) {
     }
 
     form.hidden = false;
+    wireSize(form);
     form.addEventListener('click', (e) => {
       if (e.target.closest('[data-next]')) go(at + 1);
       if (e.target.closest('[data-back]')) go(at - 1);

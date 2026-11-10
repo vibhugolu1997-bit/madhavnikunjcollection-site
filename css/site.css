@@ -179,6 +179,7 @@ a:hover { color: var(--maroon); }
 /* Collection controls */
 .tools { display: grid; gap: .9rem; margin: 1.2rem 0 1rem; }
 .field { display: grid; gap: .3rem; }
+.field--sub { margin-top: .35rem; padding-left: .75rem; border-left: 3px solid var(--gold, #c9a961); }
 .field label, .field legend, .label { font-weight: 600; font-size: .9375rem; }
 .hint { font-size: .875rem; color: var(--muted); }
 input[type="search"], input[type="text"], select, textarea {

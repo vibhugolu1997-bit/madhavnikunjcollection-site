@@ -3,6 +3,25 @@ export const data = JSON.parse(document.getElementById('kk-data')?.textContent |
 export const byCode = new Map(data.products.map((p) => [p.code, p]));
 export const money = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: data.currency || 'INR', maximumFractionDigits: 0 }).format(n);
 
+// Size field helpers. A dropdown lists the size numbers; "custom" means a customisation request
+// (size `customFrom` or above) with an optional text box for the size number or idol height.
+export const CUSTOM_PREFIX = 'Customisation request';
+export function sizeFrom(scope) {
+  const field = scope.querySelector('[name=size]');
+  if (!field) return '';
+  if (field.value !== 'custom') return field.value.trim();
+  const extra = scope.querySelector('[name=sizeCustom]')?.value.trim();
+  return `${CUSTOM_PREFIX} (size ${data.customFrom} or above)${extra ? `: ${extra}` : ''}`;
+}
+export function wireSize(scope) {
+  const sel = scope.querySelector('select[name=size]');
+  const box = scope.querySelector('[data-size-custom]');
+  if (!sel || !box) return;
+  const sync = () => { box.hidden = sel.value !== 'custom'; };
+  sel.addEventListener('change', () => { sync(); if (!box.hidden) box.querySelector('input')?.focus(); });
+  sync();
+}
+
 export function buildMessage(lines, { occasion = '', notes = '' } = {}) {
   const out = [`Namaste ${data.brand},`, '', 'I would like to enquire about:', ''];
   let subtotal = 0, unpriced = 0;

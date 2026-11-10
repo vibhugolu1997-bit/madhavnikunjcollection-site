@@ -1,5 +1,6 @@
 // Product page: thumbnails, quantity stepper, add to enquiry bag. The full-screen viewer is loaded only on request.
 import { store, spa, paths } from './core.js';
+import { sizeFrom, wireSize } from './enquiry.js';
 
 export function init({ signal } = {}) {
   const root = document.querySelector('[data-product]');
@@ -39,10 +40,11 @@ export function init({ signal } = {}) {
     const clamp = () => { qty.value = Math.min(99, Math.max(1, parseInt(qty.value, 10) || 1)); };
     form.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => { qty.value = (parseInt(qty.value, 10) || 1) + Number(b.dataset.step); clamp(); }));
     qty.addEventListener('change', clamp);
+    wireSize(form);
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       clamp();
-      store.add(code, Number(qty.value), form.elements.size.value.trim());
+      store.add(code, Number(qty.value), sizeFrom(form));
       const status = form.querySelector('[data-status]');
       status.innerHTML = '';
       status.append(`Added ${qty.value} to your enquiry bag. `, Object.assign(document.createElement('a'), { href: paths.page('bag'), textContent: 'View enquiry bag' }));

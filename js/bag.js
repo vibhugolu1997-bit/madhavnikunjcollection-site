@@ -1,6 +1,6 @@
 // Enquiry bag page: edit quantities and sizes, remove designs, build the enquiry message.
 import { store, spa, paths } from './core.js';
-import { byCode, buildMessage, money, wireSend, data } from './enquiry.js';
+import { byCode, buildMessage, money, wireSend, data, CUSTOM_PREFIX } from './enquiry.js';
 
 export function init({ signal } = {}) {
   const wrap = document.querySelector('[data-bag]');
@@ -17,17 +17,26 @@ export function init({ signal } = {}) {
 
     function sizeField(line, i, p) {
       const id = `size-${i}`;
-      let input;
-      if (p.sizes.length) {
-        input = el('select', { id });
-        input.append(el('option', { value: '', textContent: 'To be confirmed' }), ...p.sizes.map((s) => el('option', { textContent: s })));
-        if (line.size && !p.sizes.includes(line.size)) input.append(el('option', { textContent: line.size }));
-      } else {
-        input = el('input', { id, type: 'text', maxLength: 60, placeholder: 'e.g. size 4', autocomplete: 'off' });
+      const field = el('div', { className: 'field' }, el('label', { htmlFor: id, textContent: 'Preferred size' }));
+      if (!p.sizes.length) {
+        const input = el('input', { id, type: 'text', maxLength: 60, placeholder: 'e.g. size 4', autocomplete: 'off', value: line.size || '' });
+        input.addEventListener('change', () => update(i, { size: input.value.trim() }));
+        field.append(input);
+        return field;
       }
-      input.value = line.size || '';
-      input.addEventListener('change', () => update(i, { size: input.value.trim() }));
-      return el('div', { className: 'field' }, el('label', { htmlFor: id, textContent: 'Preferred size' }), input);
+      const isCustom = (line.size || '').startsWith(CUSTOM_PREFIX);
+      const select = el('select', { id });
+      select.append(el('option', { value: '', textContent: 'To be confirmed' }), ...p.sizes.map((s) => el('option', { value: s, textContent: `Size ${s}` })));
+      if (data.customFrom) select.append(el('option', { value: 'custom', textContent: `Size ${data.customFrom}+ (customisation)` }));
+      if (line.size && !isCustom && !p.sizes.includes(line.size)) select.append(el('option', { value: line.size, textContent: line.size }));
+      select.value = isCustom ? 'custom' : line.size || '';
+      const custom = el('input', { id: `${id}-custom`, type: 'text', maxLength: 60, placeholder: 'e.g. size 8, or height 12 inches', autocomplete: 'off', value: isCustom ? line.size.split(': ').slice(1).join(': ') : '' });
+      const box = el('div', { className: 'field field--sub', hidden: !isCustom }, el('label', { htmlFor: custom.id, textContent: 'Your size number or idol height' }), custom);
+      const save = () => update(i, { size: select.value === 'custom' ? `${CUSTOM_PREFIX} (size ${data.customFrom} or above)${custom.value.trim() ? `: ${custom.value.trim()}` : ''}` : select.value });
+      select.addEventListener('change', () => { box.hidden = select.value !== 'custom'; save(); if (!box.hidden) custom.focus(); });
+      custom.addEventListener('change', save);
+      field.append(select, box);
+      return field;
     }
 
     function update(i, patch) {

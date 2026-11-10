@@ -14,6 +14,8 @@ export function init({ signal } = {}) {
     const params = new URLSearchParams(location.search);
     if (params.get('favourites') === '1' || (spa && location.hash === '#favourites')) form.elements.favourites.checked = true;
     if (params.get('q')) form.elements.q.value = params.get('q');
+    // The header's search button opens this page with the search box focused.
+    if (!spa && params.get('search') === '1') { form.elements.q.focus(); form.elements.q.scrollIntoView({ block: 'center' }); }
 
     const sorters = {
       default: (a, b) => a.dataset.order - b.dataset.order,

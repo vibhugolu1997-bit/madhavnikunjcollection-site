@@ -9,7 +9,7 @@ import { init as finder } from './finder.js';
 
 const main = document.getElementById('main');
 const templates = new Map([...document.querySelectorAll('template[data-page]')].map((t) => [t.dataset.page, t]));
-const alias = { favourites: 'collection', faqs: 'contact' };
+const alias = { favourites: 'collection', search: 'collection', faqs: 'contact' };
 const inits = { home: hero, collection, bag, 'find-my-poshak': finder };
 let controller;
 let first = true;
@@ -39,6 +39,7 @@ function route() {
   if (hash === 'faqs') document.getElementById('faqs')?.scrollIntoView();
   else window.scrollTo(0, 0);
   if (!first) main.focus({ preventScroll: true });
+  if (hash === 'search') { const q = document.getElementById('q'); q?.focus(); q?.scrollIntoView({ block: 'center' }); }
   first = false;
 }
 

@@ -93,9 +93,9 @@ a:hover { color: var(--maroon); }
 .menu__panel { position: absolute; left: 0; right: 0; top: 100%; background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: var(--shadow); padding: .5rem 1rem 1rem; max-height: calc(100vh - 64px); overflow: auto; }
 .menu__panel ul { list-style: none; margin: 0; padding: 0; }
 .menu__panel a { display: flex; align-items: center; min-height: 48px; border-bottom: 1px solid var(--line); font-size: 1.0625rem; }
-@media (min-width: 900px) {
-  .nav { display: flex; gap: 1.4rem; margin-right: 1rem; }
-  .nav a { padding: .8rem 0; }
+@media (min-width: 960px) {
+  .nav { display: flex; gap: 1.3rem; margin-right: 1rem; }
+  .nav a { padding: .8rem 0; white-space: nowrap; }
   .menu { display: none; }
 }
 

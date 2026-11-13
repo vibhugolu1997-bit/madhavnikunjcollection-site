@@ -1,6 +1,6 @@
 // Product page: thumbnails, quantity stepper, add to enquiry bag. The full-screen viewer is loaded only on request.
 import { store, spa, paths } from './core.js';
-import { sizeFrom, wireSize, byCode, money } from './enquiry.js';
+import { sizeFrom, wireSize, byCode, money, data } from './enquiry.js';
 
 export function init({ signal } = {}) {
   const root = document.querySelector('[data-product]');
@@ -44,16 +44,38 @@ export function init({ signal } = {}) {
     // Designs priced by size: show the price of the chosen size.
     const priceOut = root.querySelector('[data-price-out]');
     const prices = byCode.get(code)?.prices;
-    const sizeSel = form.querySelector('[data-size]');
-    if (priceOut && prices && sizeSel) {
-      const syncPrice = () => { const v = prices[sizeSel.value]; priceOut.textContent = v != null ? `${money(v)} for size ${sizeSel.value}` : sizeSel.value === 'custom' ? 'Price on request' : priceOut.dataset.default; };
-      sizeSel.addEventListener('change', syncPrice); syncPrice();
+    const status = form.querySelector('[data-status]');
+    const product = byCode.get(code);
+    const sizeNow = () => form.querySelector('input[type=radio][name=size]:checked')?.value || '';
+    if (priceOut && prices) {
+      const syncPrice = () => { const s = sizeNow(); priceOut.textContent = prices[s] != null ? money(prices[s]) : s === 'custom' ? 'Price on request' : priceOut.dataset.default; };
+      form.addEventListener('change', syncPrice); syncPrice();
     }
+    form.querySelectorAll('input[type=radio][name=size]').forEach((r) => r.addEventListener('change', () => { status.textContent = ''; }));
+    // Buy now: opens the Razorpay payment form that covers the chosen size.
+    root.querySelector('[data-buy-now]')?.addEventListener('click', () => {
+      const s = sizeNow();
+      if (!s) { status.textContent = 'Please choose a size first.'; form.querySelector('.pills')?.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+      if (s === 'custom') { status.textContent = `Size ${data.customFrom} and above is made to order. Please use Order on WhatsApp or the enquiry bag.`; return; }
+      const forms = [...root.querySelectorAll('[data-pay] form')];
+      const target = forms.find((f) => f.dataset.paySizes.split(',').includes(s)) || (forms.length === 1 ? forms[0] : null);
+      const button = target?.querySelector('.PaymentButton') || target?.querySelector('a, button');
+      if (!button) { status.textContent = 'Online payment could not be opened just now. Please use Order on WhatsApp.'; return; }
+      status.textContent = `In the payment form, set the quantity next to Size ${s}.`;
+      button.click();
+    });
+    // Order on WhatsApp: the message carries the chosen size and quantity.
+    const waLink = root.querySelector('[data-wa-order]');
+    waLink?.addEventListener('click', () => {
+      clamp();
+      const size = sizeFrom(form);
+      const lines = [`Namaste ${data.brand},`, '', `I would like to order ${code} - ${product?.name || ''}`, `Size: ${size || 'to be confirmed'}`, `Quantity: ${qty.value}`];
+      waLink.href = `https://wa.me/${data.whatsapp}?text=${encodeURIComponent(lines.join('\n'))}`;
+    });
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       clamp();
       store.add(code, Number(qty.value), sizeFrom(form));
-      const status = form.querySelector('[data-status]');
       status.innerHTML = '';
       status.append(`Added ${qty.value} to your enquiry bag. `, Object.assign(document.createElement('a'), { href: paths.page('bag'), textContent: 'View enquiry bag' }));
     });

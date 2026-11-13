@@ -7,18 +7,19 @@ export const money = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', 
 // (size `customFrom` or above) with an optional text box for the size number or idol height.
 export const CUSTOM_PREFIX = 'Customisation request';
 export function sizeFrom(scope) {
-  const field = scope.querySelector('[name=size]');
+  const field = scope.querySelector('input[type=radio][name=size]:checked') || scope.querySelector('select[name=size], input[type=text][name=size]');
   if (!field) return '';
   if (field.value !== 'custom') return field.value.trim();
   const extra = scope.querySelector('[name=sizeCustom]')?.value.trim();
   return `${CUSTOM_PREFIX} (size ${data.customFrom} or above)${extra ? `: ${extra}` : ''}`;
 }
 export function wireSize(scope) {
-  const sel = scope.querySelector('select[name=size]');
+  const fields = [...scope.querySelectorAll('select[name=size], input[type=radio][name=size]')];
   const box = scope.querySelector('[data-size-custom]');
-  if (!sel || !box) return;
-  const sync = () => { box.hidden = sel.value !== 'custom'; };
-  sel.addEventListener('change', () => { sync(); if (!box.hidden) box.querySelector('input')?.focus(); });
+  if (!fields.length || !box) return;
+  const value = () => (fields[0].type === 'radio' ? fields.find((f) => f.checked)?.value : fields[0].value) || '';
+  const sync = () => { box.hidden = value() !== 'custom'; };
+  fields.forEach((f) => f.addEventListener('change', () => { sync(); if (!box.hidden) box.querySelector('input')?.focus(); }));
   sync();
 }
 

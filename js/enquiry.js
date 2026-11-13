@@ -22,6 +22,9 @@ export function wireSize(scope) {
   sync();
 }
 
+// Price of one piece for the chosen size. Designs priced by size have no price until a standard size is chosen.
+export const priceFor = (p, size) => (p.prices ? (p.prices[size] ?? null) : p.price);
+
 export function buildMessage(lines, { occasion = '', notes = '' } = {}) {
   const out = [`Namaste ${data.brand},`, '', 'I would like to enquire about:', ''];
   let subtotal = 0, unpriced = 0;
@@ -31,7 +34,8 @@ export function buildMessage(lines, { occasion = '', notes = '' } = {}) {
     out.push(`${i + 1}. ${p.code} - ${p.name}`);
     out.push(`   Quantity: ${l.qty}`);
     out.push(`   Preferred size: ${l.size?.trim() || 'to be confirmed'}`);
-    if (p.price != null) { out.push(`   Listed price: ${money(p.price)} each`); subtotal += p.price * l.qty; } else { out.push('   Price: on enquiry'); unpriced += 1; }
+    const price = priceFor(p, l.size?.trim());
+    if (price != null) { out.push(`   Listed price: ${money(price)} each`); subtotal += price * l.qty; } else { out.push(p.prices ? '   Price: depends on size, to be confirmed' : '   Price: on enquiry'); unpriced += 1; }
     out.push('');
   });
   if (subtotal > 0) out.push(`Subtotal of listed prices: ${money(subtotal)}${unpriced ? ` (excludes ${unpriced} design${unpriced > 1 ? 's' : ''} priced on enquiry)` : ''}`, '');

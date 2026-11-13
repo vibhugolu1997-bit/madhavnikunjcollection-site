@@ -1,6 +1,6 @@
 // Enquiry bag page: edit quantities and sizes, remove designs, build the enquiry message.
 import { store, spa, paths } from './core.js';
-import { byCode, buildMessage, money, wireSend, data, CUSTOM_PREFIX } from './enquiry.js';
+import { byCode, buildMessage, money, priceFor, wireSend, data, CUSTOM_PREFIX } from './enquiry.js';
 
 export function init({ signal } = {}) {
   const wrap = document.querySelector('[data-bag]');
@@ -26,7 +26,7 @@ export function init({ signal } = {}) {
       }
       const isCustom = (line.size || '').startsWith(CUSTOM_PREFIX);
       const select = el('select', { id });
-      select.append(el('option', { value: '', textContent: 'To be confirmed' }), ...p.sizes.map((s) => el('option', { value: s, textContent: `Size ${s}` })));
+      select.append(el('option', { value: '', textContent: 'To be confirmed' }), ...p.sizes.map((s) => el('option', { value: s, textContent: p.prices ? `Size ${s} — ${money(p.prices[s])}` : `Size ${s}` })));
       if (data.customFrom) select.append(el('option', { value: 'custom', textContent: `Size ${data.customFrom}+ (customisation)` }));
       if (line.size && !isCustom && !p.sizes.includes(line.size)) select.append(el('option', { value: line.size, textContent: line.size }));
       select.value = isCustom ? 'custom' : line.size || '';
@@ -71,7 +71,7 @@ export function init({ signal } = {}) {
           el('div', {},
             el('span', { className: 'card__code', textContent: p.code }),
             el('h3', { className: 'card__name' }, el('a', { href: paths.product(p.slug), textContent: p.name })),
-            el('p', { className: 'card__price', textContent: p.price != null ? `${money(p.price)} each` : 'Price on enquiry' }),
+            el('p', { className: 'card__price', textContent: priceFor(p, line.size?.trim()) != null ? `${money(priceFor(p, line.size?.trim()))} each` : p.prices ? `From ${money(p.price)}, by size` : 'Price on enquiry' }),
             el('div', { className: 'bag-item__controls' },
               el('div', { className: 'field' }, el('span', { className: 'label', textContent: 'Quantity' }), el('span', { className: 'qty' }, minus, qty, plus)),
               sizeField(line, i, p),

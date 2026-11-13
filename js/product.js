@@ -1,6 +1,6 @@
 // Product page: thumbnails, quantity stepper, add to enquiry bag. The full-screen viewer is loaded only on request.
 import { store, spa, paths } from './core.js';
-import { sizeFrom, wireSize } from './enquiry.js';
+import { sizeFrom, wireSize, byCode, money } from './enquiry.js';
 
 export function init({ signal } = {}) {
   const root = document.querySelector('[data-product]');
@@ -41,6 +41,14 @@ export function init({ signal } = {}) {
     form.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => { qty.value = (parseInt(qty.value, 10) || 1) + Number(b.dataset.step); clamp(); }));
     qty.addEventListener('change', clamp);
     wireSize(form);
+    // Designs priced by size: show the price of the chosen size.
+    const priceOut = root.querySelector('[data-price-out]');
+    const prices = byCode.get(code)?.prices;
+    const sizeSel = form.querySelector('[data-size]');
+    if (priceOut && prices && sizeSel) {
+      const syncPrice = () => { const v = prices[sizeSel.value]; priceOut.textContent = v != null ? `${money(v)} for size ${sizeSel.value}` : sizeSel.value === 'custom' ? 'Price on request' : priceOut.dataset.default; };
+      sizeSel.addEventListener('change', syncPrice); syncPrice();
+    }
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       clamp();

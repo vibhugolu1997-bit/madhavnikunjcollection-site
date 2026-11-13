@@ -41,7 +41,7 @@
   <form class="tools" data-tools role="search" aria-label="Search and filter designs" hidden>
     <div class="tools__row">
       <div class="field"><label for="q">Search by name, colour or code</label><input type="search" id="q" name="q" placeholder="e.g. maroon or MNV-105" autocomplete="off"></div>
-      <div class="field"><label for="sort">Sort by</label><select id="sort" name="sort"><option value="default">Featured order</option><option value="name-asc">Name A to Z</option><option value="name-desc">Name Z to A</option><option value="code">Product code</option></select></div>
+      <div class="field"><label for="sort">Sort by</label><select id="sort" name="sort"><option value="default">Featured order</option><option value="name-asc">Name A to Z</option><option value="name-desc">Name Z to A</option><option value="code">Product code</option><option value="price-asc">Price low to high</option><option value="price-desc">Price high to low</option></select></div>
       <div><button type="reset" class="btn btn--ghost btn--small" data-reset>Reset filters</button></div>
     </div>
     <fieldset><legend class="label">Colour</legend><div class="chips"><label class="chip"><input type="checkbox" name="colour" value="White"><span>White</span></label><label class="chip"><input type="checkbox" name="colour" value="Multicolour"><span>Multicolour</span></label><label class="chip"><input type="checkbox" name="colour" value="Maroon"><span>Maroon</span></label><label class="chip"><input type="checkbox" name="colour" value="Green"><span>Green</span></label><label class="chip"><input type="checkbox" name="colour" value="Purple"><span>Purple</span></label><label class="chip"><input type="checkbox" name="colour" value="Yellow"><span>Yellow</span></label></div></fieldset>
@@ -51,13 +51,13 @@
     </div></fieldset>
   </form>
   <div class="results-bar"><p class="hint" style="margin:0" role="status" data-count>6 designs</p></div>
-  <ul class="grid" data-grid><li data-item data-order="0" data-code="MN-101" data-name="White Floral Mirror-Work Poshak" data-colours="White|Multicolour" data-mukut="1" data-price="" data-text="white floral mirror-work poshak mn-101 white multicolour white pleated poshak with a multicolour mirror-work border and layered fabric petals, photographed with a coordinating pagdi."><article class="card" data-code="MN-101">
+  <ul class="grid" data-grid><li data-item data-order="0" data-code="MN-101" data-name="White Floral Mirror-Work Poshak" data-colours="White|Multicolour" data-mukut="1" data-price="200" data-text="white floral mirror-work poshak mn-101 white multicolour white pleated poshak with a multicolour mirror-work border and layered fabric petals, photographed with a coordinating pagdi."><article class="card" data-code="MN-101">
   <a href="product/white-floral-mirror-work-poshak.html" tabindex="-1" aria-hidden="true" class="card__media"><picture><source type="image/avif" srcset="img/mn-101-1-480.avif 480w, img/mn-101-1-800.avif 800w" sizes="(min-width: 1000px) 260px, (min-width: 700px) 31vw, 46vw"><img src="img/mn-101-1-800.jpg" srcset="img/mn-101-1-480.jpg 480w, img/mn-101-1-800.jpg 800w" sizes="(min-width: 1000px) 260px, (min-width: 700px) 31vw, 46vw" width="800" height="600" alt="White floral mirror-work poshak with matching pagdi, front view" style="object-position:50% 50%" loading="lazy" decoding="async"></picture></a>
   <div class="card__body">
     <span class="card__code">MN-101</span>
     <h2 class="card__name"><a href="product/white-floral-mirror-work-poshak.html">White Floral Mirror-Work Poshak</a></h2>
     <p class="card__meta">Photographed with pagdi</p>
-    <p class="card__price">Price on enquiry</p>
+    <p class="card__price">₹200 to ₹560</p>
   </div>
   <button class="fav" type="button" data-fav="MN-101" aria-pressed="false" aria-label="Save White Floral Mirror-Work Poshak to favourites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.600-7.5 10.200-7.500 10.200z"/></svg></button>
 </article></li><li data-item data-order="1" data-code="MNV-105" data-name="Maroon Velvet Poshak with Stone and Pearl Border" data-colours="Maroon" data-mukut="1" data-price="" data-text="maroon velvet poshak with stone and pearl border mnv-105 maroon deep maroon velvet poshak with a double border of stone and pearl trim, photographed with a cream and maroon pagdi."><article class="card" data-code="MNV-105">
@@ -107,7 +107,7 @@
   <button class="fav" type="button" data-fav="MNV-104" aria-pressed="false" aria-label="Save Yellow Velvet Poshak with Silver Lace to favourites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.600-7.5 10.200-7.500 10.200z"/></svg></button>
 </article></li></ul>
   <div class="empty" data-empty hidden><h2>No designs match</h2><p data-empty-text>Try a different word, or clear the filters to see every design.</p><button type="button" class="btn" data-reset>Reset filters</button></div>
-  <p class="hint" style="margin-top:1.5rem">Prices are shared on enquiry, so sorting by price is not available yet.</p>
+  
 </div>
 </main>
 <footer class="site-footer">

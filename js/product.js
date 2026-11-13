@@ -1,6 +1,6 @@
 // Product page: thumbnails, quantity stepper, add to enquiry bag. The full-screen viewer is loaded only on request.
 import { store, spa, paths } from './core.js';
-import { sizeFrom, wireSize, byCode, money, data } from './enquiry.js';
+import { sizeFrom, wireSize, byCode, money, data, copyText } from './enquiry.js';
 
 export function init({ signal } = {}) {
   const root = document.querySelector('[data-product]');
@@ -48,7 +48,8 @@ export function init({ signal } = {}) {
     const product = byCode.get(code);
     const sizeNow = () => form.querySelector('input[type=radio][name=size]:checked')?.value || '';
     if (priceOut && prices) {
-      const syncPrice = () => { const s = sizeNow(); priceOut.textContent = prices[s] != null ? money(prices[s]) : s === 'custom' ? 'Price on request' : priceOut.dataset.default; };
+      const barPrice = root.querySelector('[data-bar-price]');
+      const syncPrice = () => { const s = sizeNow(); priceOut.textContent = prices[s] != null ? money(prices[s]) : s === 'custom' ? 'Price on request' : priceOut.dataset.default; if (barPrice) { barPrice.hidden = prices[s] == null; barPrice.textContent = prices[s] != null ? `Size ${s} · ${money(prices[s])}` : ''; } };
       form.addEventListener('change', syncPrice); syncPrice();
     }
     form.querySelectorAll('input[type=radio][name=size]').forEach((r) => r.addEventListener('change', () => { status.textContent = ''; }));
@@ -63,6 +64,13 @@ export function init({ signal } = {}) {
       if (!button) { status.textContent = 'Online payment could not be opened just now. Please use Order on WhatsApp.'; return; }
       status.textContent = `In the payment form, set the quantity next to Size ${s}.`;
       button.click();
+    });
+    // Share: the phone's share sheet where it exists, otherwise copy the link.
+    root.querySelector('[data-share]')?.addEventListener('click', async () => {
+      const out = root.querySelector('[data-share-status]');
+      const url = location.href.split('#')[0];
+      if (navigator.share) { try { await navigator.share({ title: document.title, url }); } catch { /* closed by the visitor */ } return; }
+      out.textContent = (await copyText(url)) ? 'Link copied.' : url;
     });
     // Order on WhatsApp: the message carries the chosen size and quantity.
     const waLink = root.querySelector('[data-wa-order]');

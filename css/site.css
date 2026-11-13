@@ -215,7 +215,9 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .price { font: 600 1.3rem var(--serif); color: var(--maroon); margin: .3rem 0 1rem; }
 .pay { margin: 1.2rem 0; padding: 1rem; border: 1px solid var(--line, #e3d9c6); border-radius: 12px; }
 .pay__title { font: 600 1.05rem var(--serif); margin: 0 0 .6rem; }
-.pay form { margin: 0 0 .5rem; }
+.pay form { margin: 0; }
+.pay__row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: 0 0 .7rem; }
+.pay__label { font-weight: 600; min-width: 7.5rem; }
 .price small { display: block; font: 400 .9rem var(--sans); color: var(--muted); margin-top: .2rem; }
 .buy { display: grid; gap: 1rem; margin: 1.2rem 0; }
 .qty { display: inline-flex; align-items: center; border: 1.5px solid #b9ae95; border-radius: 999px; background: #fff; }

@@ -76,4 +76,55 @@ if (menu) {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && menu.open) { menu.open = false; summary.focus(); } });
   document.addEventListener('click', (e) => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
 }
+
+// Header search: opens a bar under the header and lists matching designs as you type (no page change).
+const panel = document.querySelector('[data-search]');
+const opener = document.querySelector('[data-search-open]');
+if (panel && opener) {
+  const input = panel.querySelector('input');
+  const list = panel.querySelector('[data-search-results]');
+  const form = panel.querySelector('form');
+  let items = null;
+  const load = () => {
+    if (!items) { try { items = JSON.parse(document.getElementById('kk-data')?.textContent || '{}').products || []; } catch { items = []; } }
+    return items;
+  };
+  const rupee = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
+  const priceOf = (p) => {
+    if (p.prices) { const v = Object.values(p.prices); const lo = Math.min(...v); const hi = Math.max(...v); return lo === hi ? rupee(lo) : `${rupee(lo)} to ${rupee(hi)}`; }
+    return p.price ? rupee(p.price) : 'Price on enquiry';
+  };
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; };
+  function render() {
+    const words = input.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    list.replaceChildren();
+    if (!words.length) return;
+    const hits = load().filter((p) => words.every((w) => (p.q || p.name.toLowerCase()).includes(w)));
+    if (!hits.length) { list.append(el('li', 'search-panel__none', 'No design matches. Try a colour such as green or maroon.')); return; }
+    for (const p of hits.slice(0, 8)) {
+      const a = el('a'); a.href = paths.product(p.slug);
+      const im = el('img'); im.src = `${paths.img}${p.thumb}-160.jpg`; im.alt = ''; im.width = 56; im.height = 56; im.style.objectPosition = p.focus || '50% 50%';
+      const t = el('span', 'search-panel__text'); t.append(el('strong', '', p.name), el('span', '', `${p.code} · ${priceOf(p)}`));
+      a.append(im, t);
+      const li = el('li'); li.append(a); list.append(li);
+    }
+  }
+  const setOpen = (open) => {
+    panel.hidden = !open;
+    opener.setAttribute('aria-expanded', String(open));
+    if (open) { if (menu) menu.open = false; input.focus(); render(); } else { opener.focus(); }
+  };
+  opener.addEventListener('click', (e) => { e.preventDefault(); setOpen(panel.hidden); });
+  panel.querySelector('[data-search-close]').addEventListener('click', () => setOpen(false));
+  input.addEventListener('input', render);
+  list.addEventListener('click', (e) => { if (e.target.closest('a')) setOpen(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) setOpen(false); });
+  document.addEventListener('click', (e) => { if (!panel.hidden && !panel.contains(e.target) && !opener.contains(e.target)) { panel.hidden = true; opener.setAttribute('aria-expanded', 'false'); } });
+  if (menu) menu.addEventListener('toggle', () => { if (menu.open && !panel.hidden) { panel.hidden = true; opener.setAttribute('aria-expanded', 'false'); } });
+  // Enter with one clear match opens it; otherwise the collection page shows the full filtered list.
+  form.addEventListener('submit', (e) => {
+    const first = list.querySelectorAll('a');
+    if (first.length === 1) { e.preventDefault(); location.href = first[0].href; } else if (spa) { e.preventDefault(); }
+  });
+}
 paint();

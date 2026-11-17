@@ -26,7 +26,7 @@ export function init({ signal } = {}) {
       }
       const isCustom = (line.size || '').startsWith(CUSTOM_PREFIX);
       const select = el('select', { id });
-      select.append(el('option', { value: '', textContent: 'To be confirmed' }), ...p.sizes.map((s) => el('option', { value: s, textContent: p.prices ? `Size ${s} — ${money(p.prices[s])}` : `Size ${s}` })));
+      select.append(el('option', { value: '', textContent: 'To be confirmed' }), ...p.sizes.map((s) => el('option', { value: s, textContent: p.prices?.[s] != null ? `Size ${s} — ${money(p.prices[s])}` : `Size ${s}` })));
       if (data.customFrom) select.append(el('option', { value: 'custom', textContent: `Size ${data.customFrom}+ (customisation)` }));
       if (line.size && !isCustom && !p.sizes.includes(line.size)) select.append(el('option', { value: line.size, textContent: line.size }));
       select.value = isCustom ? 'custom' : line.size || '';

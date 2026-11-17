@@ -49,7 +49,7 @@ export function init({ signal } = {}) {
     const sizeNow = () => form.querySelector('input[type=radio][name=size]:checked')?.value || '';
     if (priceOut && prices) {
       const barPrice = root.querySelector('[data-bar-price]');
-      const syncPrice = () => { const s = sizeNow(); priceOut.textContent = prices[s] != null ? money(prices[s]) : s === 'custom' ? 'Price on request' : priceOut.dataset.default; if (barPrice) { barPrice.hidden = prices[s] == null; barPrice.textContent = prices[s] != null ? `Size ${s} · ${money(prices[s])}` : ''; } };
+      const syncPrice = () => { const s = sizeNow(); priceOut.textContent = prices[s] != null ? money(prices[s]) : s === 'custom' ? 'Price on request' : s ? 'Price on enquiry for this size' : priceOut.dataset.default; if (barPrice) { barPrice.hidden = prices[s] == null; barPrice.textContent = prices[s] != null ? `Size ${s} · ${money(prices[s])}` : ''; } };
       form.addEventListener('change', syncPrice); syncPrice();
     }
     form.querySelectorAll('input[type=radio][name=size]').forEach((r) => r.addEventListener('change', () => { status.textContent = ''; }));

@@ -184,10 +184,56 @@ export function init({ signal } = {}) {
         const s = document.createElement('script'); s.src = 'https://checkout.razorpay.com/v1/checkout.js';
         s.onload = () => resolve(); s.onerror = () => reject(new Error('load')); document.head.append(s);
       });
-      const showDone = (title, body, text) => {
-        done.replaceChildren(el('h3', { textContent: title }), el('p', { textContent: body }),
-          el('a', { className: 'btn btn--wa', href: waUrl(text), target: '_blank', rel: 'noopener', textContent: 'Send order details on WhatsApp' }));
+      // Order ID made in the browser: MN + date + 4 letters/digits, e.g. MN261118-7K3Q.
+      const newOrderId = () => {
+        const d = new Date(); const p2 = (n) => String(n).padStart(2, '0');
+        const abc = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        const rnd = [...crypto.getRandomValues(new Uint8Array(4))].map((b) => abc[b % abc.length]).join('');
+        return `MN${String(d.getFullYear()).slice(2)}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${rnd}`;
+      };
+      const makeOrder = (bag, sum, how, paymentId = '', id = newOrderId()) => ({
+        id, date: new Date().toISOString(), way: how, paymentId, total: sum,
+        items: bag.map((l) => { const p = byCode.get(l.code); const unit = priceFor(p, l.size); return { code: p.code, name: p.name, size: l.size, qty: l.qty, unit, amount: unit * l.qty }; }),
+        customer: { name: val('name'), phone: phone(), email: val('email'), address: addressLine() }, notes: notes.value.trim(),
+      });
+      const saveOrder = (order) => { try { localStorage.setItem('kalakunj:lastOrder', JSON.stringify(order)); } catch { /* ignore */ } };
+      // Confirmation email with the invoice inside it. Sent from this browser through EmailJS; only when it is set up.
+      const sendMail = async (order) => {
+        const m = data.checkout.mail;
+        if (!m) return 'off';
+        const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+        const td = 'style="padding:8px 6px;border-bottom:1px solid #e6dcc6"';
+        const rows = order.items.map((i) => `<tr><td ${td}>${esc(i.code)} ${esc(i.name)}</td><td ${td}>${esc(i.size)}</td><td ${td}>${i.qty}</td><td ${td} align="right">${esc(money(i.amount))}</td></tr>`).join('');
+        try {
+          const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ service_id: m.s, template_id: m.t, user_id: m.k, template_params: {
+              to_email: order.customer.email, customer_email: order.customer.email || 'not given', customer_name: order.customer.name,
+              order_id: order.id, order_date: new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
+              items_rows: rows, total: money(order.total),
+              payment: order.way === 'cod' ? `Cash on delivery: ${money(order.total)} to pay on delivery` : `Paid online (Razorpay ${order.paymentId})`,
+              customer_phone: order.customer.phone, customer_address: order.customer.address, customer_notes: order.notes || '-',
+              logo_url: `${data.checkout.site}/img/logo-mark-240.png`, site_url: data.checkout.site, brand: data.brand, whatsapp: `+${data.whatsapp}`,
+            } }),
+          });
+          return res.ok ? 'sent' : 'failed';
+        } catch { return 'failed'; }
+      };
+      const showDone = (order, body, text, waLabel) => {
+        const mailLine = el('p', { className: 'hint', textContent: '' });
+        done.replaceChildren(
+          el('p', { className: 'checkout__jsk hi', lang: 'hi', textContent: '॥ जय श्री कृष्ण ॥' }),
+          el('h3', { textContent: order.way === 'cod' && !data.checkout.mail ? 'Jai Shri Krishna! Send your order on WhatsApp to place it.' : 'Jai Shri Krishna! Your order is placed.' }),
+          el('p', {}, 'Order ID: ', el('strong', { textContent: order.id })),
+          el('p', { textContent: body }), mailLine,
+          el('div', { className: 'btn-row' },
+            el('a', { className: 'btn btn--wa', href: waUrl(text), target: '_blank', rel: 'noopener', textContent: waLabel }),
+            el('a', { className: 'btn btn--ghost', href: paths.page('invoice'), textContent: 'View invoice' })));
         done.hidden = false; form.hidden = true; done.focus(); done.scrollIntoView({ block: 'center' });
+        sendMail(order).then((r) => {
+          if (r === 'sent') mailLine.textContent = order.customer.email ? `A confirmation email with your invoice has been sent to ${order.customer.email}.` : `Your order has been emailed to ${data.brand}.`;
+          else if (r === 'failed') mailLine.textContent = 'The confirmation email could not be sent. Your invoice is available with the button above.';
+        });
       };
 
       form.addEventListener('submit', async (e) => {
@@ -198,8 +244,12 @@ export function init({ signal } = {}) {
         out.dataset.kind = '';
         if (way() === 'cod') {
           // No server here: the order exists only once the customer sends this message.
-          window.open(waUrl(orderText(bag, sum, 'I would like to place this CASH ON DELIVERY order:')), '_blank', 'noopener');
-          out.textContent = 'WhatsApp has opened with your order. It is placed only when you press send there.';
+          const order = makeOrder(bag, sum, 'cod');
+          saveOrder(order);
+          const text = orderText(bag, sum, `I would like to place this CASH ON DELIVERY order (Order ID ${order.id}):`);
+          window.open(waUrl(text), '_blank', 'noopener');
+          showDone(order, `${money(sum)} to pay in cash on delivery. WhatsApp has opened with your order: press send there so ${data.brand} receives it${data.checkout.mail ? ' on WhatsApp as well' : ''}.`, text, 'Open WhatsApp again');
+          store.setBag([]);
           return;
         }
         go.disabled = true; out.textContent = 'Opening secure payment…';
@@ -207,6 +257,7 @@ export function init({ signal } = {}) {
         const items = itemLines(bag).join(' | ');
         const noteParts = {}; // Razorpay notes: each value up to 256 characters
         for (let i = 0, n = 1; i < items.length && n <= 6; i += 250, n += 1) noteParts[`items_${n}`] = items.slice(i, i + 250);
+        const oid = newOrderId();
         const rzp = new window.Razorpay({
           key: data.checkout.key,
           amount: Math.round(sum * 100),
@@ -214,12 +265,14 @@ export function init({ signal } = {}) {
           name: data.brand,
           description: `${bag.reduce((n, l) => n + l.qty, 0)} piece(s): ${bag.map((l) => `${l.code} size ${l.size}`).join(', ')}`.slice(0, 250),
           prefill: { name: val('name'), contact: `+91${phone()}`, ...(val('email') ? { email: val('email') } : {}) },
-          notes: { ...noteParts, customer: val('name').slice(0, 250), mobile: phone(), address: addressLine().slice(0, 250), ...(notes.value.trim() ? { customer_note: notes.value.trim().slice(0, 250) } : {}) },
+          notes: { order_id: oid, ...noteParts, customer: val('name').slice(0, 250), mobile: phone(), address: addressLine().slice(0, 250), ...(notes.value.trim() ? { customer_note: notes.value.trim().slice(0, 250) } : {}) },
           theme: { color: '#1f4a3c' },
           modal: { ondismiss: () => { go.disabled = false; out.textContent = 'Payment was not completed. Nothing has been charged by this page.'; } },
           handler: (res) => {
-            const text = orderText(bag, sum, 'I have paid online for this order:', [`Razorpay payment ID: ${res.razorpay_payment_id}`]);
-            showDone('Payment received. Thank you!', `Payment ID ${res.razorpay_payment_id} for ${money(sum)}. Your order and address have gone to ${data.brand} with the payment. Send the details on WhatsApp too, so delivery can be confirmed quickly.`, text);
+            const order = makeOrder(bag, sum, 'online', res.razorpay_payment_id, oid);
+            saveOrder(order);
+            const text = orderText(bag, sum, `I have paid online for this order (Order ID ${order.id}):`, [`Razorpay payment ID: ${res.razorpay_payment_id}`]);
+            showDone(order, `Payment of ${money(sum)} received (Razorpay ID ${res.razorpay_payment_id}). Your order and address have gone to ${data.brand} with the payment. Send the details on WhatsApp too, so delivery can be confirmed quickly.`, text, 'Send order details on WhatsApp');
             store.setBag([]);
           },
         });

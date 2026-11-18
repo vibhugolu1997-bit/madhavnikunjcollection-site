@@ -201,16 +201,15 @@ export function init({ signal } = {}) {
       const sendMail = async (order) => {
         const m = data.checkout.mail;
         if (!m) return 'off';
-        const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-        const td = 'style="padding:8px 6px;border-bottom:1px solid #e6dcc6"';
-        const rows = order.items.map((i) => `<tr><td ${td}>${esc(i.code)} ${esc(i.name)}</td><td ${td}>${esc(i.size)}</td><td ${td}>${i.qty}</td><td ${td} align="right">${esc(money(i.amount))}</td></tr>`).join('');
+        const to = order.customer.email || m.shop; // no customer email: the copy goes to the shop only
+        if (!to) return 'off';
         try {
           const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ service_id: m.s, template_id: m.t, user_id: m.k, template_params: {
-              to_email: order.customer.email, customer_email: order.customer.email || 'not given', customer_name: order.customer.name,
+              to_email: to, customer_email: order.customer.email || 'not given', customer_name: order.customer.name,
               order_id: order.id, order_date: new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
-              items_rows: rows, total: money(order.total),
+              orders: order.items.map((i) => ({ name: `${i.code} ${i.name}`, size: i.size, qty: i.qty, amount: money(i.amount) })), total: money(order.total),
               payment: order.way === 'cod' ? `Cash on delivery: ${money(order.total)} to pay on delivery` : `Paid online (Razorpay ${order.paymentId})`,
               customer_phone: order.customer.phone, customer_address: order.customer.address, customer_notes: order.notes || '-',
               logo_url: `${data.checkout.site}/img/logo-mark-240.png`, site_url: data.checkout.site, brand: data.brand, whatsapp: `+${data.whatsapp}`,

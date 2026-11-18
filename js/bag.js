@@ -79,6 +79,8 @@ export function init({ signal } = {}) {
       }));
     }
 
+    // Delivery charge for an order subtotal (0 when free, null when no charge is configured).
+    const shipFor = (sub) => { const d = data.checkout?.delivery; return d ? (d.freeFrom && sub >= d.freeFrom ? 0 : d.charge) : null; };
     const row = (k, v) => [el('dt', { textContent: k }), el('dd', { textContent: v })];
     function renderSummary() {
       const bag = lines();
@@ -88,14 +90,15 @@ export function init({ signal } = {}) {
       if (!has) return;
       const { text, subtotal, unpriced } = buildMessage(bag, { notes: notes.value });
       const pieces = bag.reduce((n, l) => n + l.qty, 0);
+      const ship = data.checkout?.delivery && subtotal > 0 && !unpriced ? shipFor(subtotal) : null;
       summary.replaceChildren(
         ...row('Designs', String(bag.length)),
         ...row('Total pieces', String(pieces)),
         ...(subtotal > 0 ? row('Subtotal (confirmed prices)', money(subtotal)) : row('Subtotal', 'Not available yet')),
         ...(unpriced ? row('Priced on enquiry', `${unpriced} design${unpriced > 1 ? 's' : ''}`) : []),
-        ...row('Delivery charges', 'To be confirmed'));
+        ...(ship != null ? [...row('Delivery', ship ? money(ship) : 'Free'), ...row('Total', money(subtotal + ship))] : row('Delivery charges', 'To be confirmed')));
       note.textContent = subtotal > 0
-        ? (unpriced ? 'The subtotal covers only designs with a confirmed price. ' : '') + `Delivery charges are confirmed by ${data.brand}.`
+        ? (unpriced ? 'The subtotal covers only designs with a confirmed price. ' : '') + (ship != null ? (data.checkout.delivery.freeFrom && ship ? `Add ${money(data.checkout.delivery.freeFrom - subtotal)} more for free delivery.` : '') : `Delivery charges are confirmed by ${data.brand}.`)
         : `None of these designs has a confirmed price yet, so no subtotal is shown. ${data.brand} confirms prices and delivery charges when you enquire.`;
       message.textContent = text;
     }
@@ -141,8 +144,9 @@ export function init({ signal } = {}) {
       const state = () => {
         const bag = lines();
         const bad = bag.filter((l) => { const p = byCode.get(l.code); return priceFor(p, l.size?.trim()) == null; });
-        const sum = bag.reduce((n, l) => n + (priceFor(byCode.get(l.code), l.size?.trim()) || 0) * l.qty, 0);
-        return { bag, bad, sum };
+        const sub = bag.reduce((n, l) => n + (priceFor(byCode.get(l.code), l.size?.trim()) || 0) * l.qty, 0);
+        const ship = shipFor(sub);
+        return { bag, bad, sub, ship, sum: sub + (ship || 0) }; // sum = what the customer pays
       };
       const sync = () => {
         const { bag, bad, sum } = state();
@@ -173,7 +177,7 @@ export function init({ signal } = {}) {
       const itemLines = (bag) => bag.map((l) => { const p = byCode.get(l.code); return `${l.qty} x ${p.code} ${p.name}, size ${l.size}, ${money(priceFor(p, l.size) * l.qty)}`; });
       const orderText = (bag, sum, heading, extra = []) => [
         `Namaste ${data.brand},`, '', heading, '', ...itemLines(bag).map((t, i) => `${i + 1}. ${t}`), '',
-        `Total: ${money(sum)} (delivery charges to be confirmed)`, ...extra, '',
+        ...(shipFor(sum) === null ? [`Total: ${money(sum)} (delivery charges to be confirmed)`] : (() => { const sub = bag.reduce((n, l) => n + priceFor(byCode.get(l.code), l.size) * l.qty, 0); const sh = shipFor(sub); return [`Subtotal: ${money(sub)}`, `Delivery: ${sh ? money(sh) : 'Free'}`, `Total: ${money(sub + sh)}`]; })()), ...extra, '',
         `Name: ${val('name')}`, `Mobile: ${phone()}`, `Address: ${addressLine()}`,
         ...(notes.value.trim() ? [`Notes: ${notes.value.trim()}`] : []),
       ].join('\n');
@@ -193,6 +197,7 @@ export function init({ signal } = {}) {
       };
       const makeOrder = (bag, sum, how, paymentId = '', id = newOrderId()) => ({
         id, date: new Date().toISOString(), way: how, paymentId, total: sum,
+        subtotal: bag.reduce((n, l) => n + priceFor(byCode.get(l.code), l.size) * l.qty, 0), delivery: shipFor(bag.reduce((n, l) => n + priceFor(byCode.get(l.code), l.size) * l.qty, 0)),
         items: bag.map((l) => { const p = byCode.get(l.code); const unit = priceFor(p, l.size); return { code: p.code, name: p.name, size: l.size, qty: l.qty, unit, amount: unit * l.qty }; }),
         customer: { name: val('name'), phone: phone(), email: val('email'), address: addressLine() }, notes: notes.value.trim(),
       });
@@ -209,7 +214,7 @@ export function init({ signal } = {}) {
             body: JSON.stringify({ service_id: m.s, template_id: m.t, user_id: m.k, template_params: {
               to_email: to, customer_email: order.customer.email || 'not given', customer_name: order.customer.name,
               order_id: order.id, order_date: new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
-              orders: order.items.map((i) => ({ name: `${i.code} ${i.name}`, size: i.size, qty: i.qty, amount: money(i.amount) })), total: money(order.total),
+              orders: [...order.items.map((i) => ({ name: `${i.code} ${i.name}`, size: i.size, qty: i.qty, amount: money(i.amount) })), ...(order.delivery != null ? [{ name: 'Delivery', size: '', qty: '', amount: order.delivery ? money(order.delivery) : 'Free' }] : [])], total: money(order.total),
               payment: order.way === 'cod' ? `Cash on delivery: ${money(order.total)} to pay on delivery` : `Paid online (Razorpay ${order.paymentId})`,
               customer_phone: order.customer.phone, customer_address: order.customer.address, customer_notes: order.notes || '-',
               logo_url: `${data.checkout.site}/img/logo-mark-240.png`, site_url: data.checkout.site, brand: data.brand, whatsapp: `+${data.whatsapp}`,

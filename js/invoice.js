@@ -20,6 +20,9 @@ export function init() {
     tr.append(td(`${i.code} · ${i.name}`), td(i.size), td(String(i.qty)), td(money(i.unit), 'num'), td(money(i.amount), 'num'));
     return tr;
   }));
+  const sub = order.subtotal ?? order.total;
+  set('subtotal', money(sub));
+  set('delivery', order.delivery == null ? 'To be confirmed' : order.delivery ? money(order.delivery) : 'Free');
   set('total', money(order.total));
   set('dueLabel', order.way === 'cod' ? 'To pay on delivery' : 'Paid');
   set('due', money(order.total));

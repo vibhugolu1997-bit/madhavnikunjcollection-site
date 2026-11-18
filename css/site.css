@@ -420,3 +420,5 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
   .invoice { border: 0; padding: 0; max-width: none; }
   .invoice-wrap { padding: 0; }
 }
+
+.invoice__table tfoot tr.sub td { font-weight: 400; padding-block: .3rem; }

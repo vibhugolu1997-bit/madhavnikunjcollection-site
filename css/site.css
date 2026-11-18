@@ -185,7 +185,7 @@ a:hover { color: var(--maroon); }
 .field--sub { margin-top: .35rem; padding-left: .75rem; border-left: 3px solid var(--gold, #c9a961); }
 .field label, .field legend, .label { font-weight: 600; font-size: .9375rem; }
 .hint { font-size: .875rem; color: var(--muted); }
-input[type="search"], input[type="text"], select, textarea {
+input[type="search"], input[type="text"], input[type="tel"], input[type="email"], .checkout input:not([type=radio]), select, textarea {
   width: 100%; min-height: 48px; padding: .6rem .8rem; border: 1.5px solid #b9ae95; border-radius: 10px; background: #fff; color: var(--ink); font: inherit;
 }
 textarea { min-height: 6rem; resize: vertical; }
@@ -369,3 +369,24 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .search-panel__text strong { font-weight: 600; }
 .search-panel__text span { font-size: .875rem; color: var(--muted, #6b6257); }
 .search-panel__none { padding: .9rem 0 .2rem; color: var(--muted, #6b6257); }
+
+/* Bag checkout */
+.checkout { margin-top: 1.2rem; padding-top: 1.2rem; border-top: 1px solid var(--line); scroll-margin-top: 84px; }
+.checkout h3 { margin: 0 0 .8rem; }
+.checkout .field { margin-bottom: .8rem; }
+.checkout input:not([type=radio]), .checkout textarea { width: 100%; box-sizing: border-box; }
+.checkout__two { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+.checkout__ways { border: 0; padding: 0; margin: .4rem 0 1rem; }
+.checkout__ways legend { font-weight: 600; margin-bottom: .5rem; padding: 0; }
+.way { display: flex; gap: .7rem; align-items: flex-start; padding: .8rem .9rem; border: 1.5px solid var(--line); border-radius: 12px; margin-bottom: .5rem; cursor: pointer; background: #fff; }
+.way:has(input:checked) { border-color: var(--emerald-deep); background: var(--emerald-soft); }
+.way input { margin-top: .25rem; width: 18px; height: 18px; accent-color: var(--emerald-deep); flex: none; }
+.way span { display: flex; flex-direction: column; line-height: 1.35; }
+.way small { color: var(--muted); }
+.checkout__total { font-size: 1.15rem; margin: 0 0 .8rem; }
+.checkout .btn--buy { width: 100%; }
+.checkout .btn--buy:disabled { opacity: .5; cursor: not-allowed; }
+.checkout__done { margin-top: 1.2rem; }
+.checkout__done .btn { margin-top: .6rem; }
+.checkout__enquiry { margin: 1.2rem 0; border-top: 1px solid var(--line); padding-top: 1rem; }
+.checkout__enquiry > summary { cursor: pointer; font-weight: 600; color: var(--emerald-deep); }

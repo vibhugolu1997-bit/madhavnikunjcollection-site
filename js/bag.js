@@ -83,7 +83,8 @@ export function init({ signal } = {}) {
     function renderSummary() {
       const bag = lines();
       const has = bag.length > 0;
-      wrap.hidden = !has; emptyBox.hidden = has;
+      const paid = !wrap.querySelector('[data-checkout-done]')?.hidden && wrap.querySelector('[data-checkout-done]');
+      wrap.hidden = !has && !paid; emptyBox.hidden = has || Boolean(paid);
       if (!has) return;
       const { text, subtotal, unpriced } = buildMessage(bag, { notes: notes.value });
       const pieces = bag.reduce((n, l) => n + l.qty, 0);
@@ -123,6 +124,109 @@ export function init({ signal } = {}) {
     window.addEventListener('storage', render, { signal });
     render();
     wireSend(wrap, () => message.textContent); // after render, so the WhatsApp link starts with the full message
+
+    // ---- Checkout: Razorpay popup (public key only) or cash on delivery through WhatsApp.
+    const form = wrap.querySelector('[data-checkout]');
+    if (form) {
+      const out = form.querySelector('[data-checkout-status]');
+      const total = form.querySelector('[data-checkout-total]');
+      const go = form.querySelector('[data-checkout-go]');
+      const done = wrap.querySelector('[data-checkout-done]');
+      const SAVE = 'kalakunj:checkout';
+      const fields = ['name', 'phone', 'address', 'city', 'pin', 'state', 'email'];
+      try { const saved = JSON.parse(localStorage.getItem(SAVE) || '{}'); fields.forEach((k) => { if (form.elements[k] && saved[k]) form.elements[k].value = saved[k]; }); } catch { /* storage blocked */ }
+      const val = (k) => (form.elements[k]?.value || '').trim();
+      const way = () => form.querySelector('input[name=way]:checked')?.value || '';
+      // Every line must have a standard size with a listed price before it can be ordered here.
+      const state = () => {
+        const bag = lines();
+        const bad = bag.filter((l) => { const p = byCode.get(l.code); return priceFor(p, l.size?.trim()) == null; });
+        const sum = bag.reduce((n, l) => n + (priceFor(byCode.get(l.code), l.size?.trim()) || 0) * l.qty, 0);
+        return { bag, bad, sum };
+      };
+      const sync = () => {
+        const { bag, bad, sum } = state();
+        total.textContent = bad.length || !bag.length ? '—' : money(sum);
+        go.disabled = Boolean(bad.length) || !bag.length;
+        go.textContent = way() === 'cod' ? 'Place order on WhatsApp' : 'Pay now';
+        if (bad.length) out.textContent = `Choose a size with a listed price for: ${bad.map((l) => byCode.get(l.code).name).join(', ')}. Designs priced on enquiry cannot be ordered here; remove them or send an enquiry below.`;
+        else if (out.dataset.kind !== 'error') out.textContent = '';
+      };
+      document.addEventListener('kk:change', sync, { signal });
+      form.addEventListener('change', () => { out.dataset.kind = ''; sync(); });
+      sync();
+      if (location.hash === '#checkout') form.scrollIntoView({ block: 'start' });
+
+      const fail = (msg, field) => { out.dataset.kind = 'error'; out.textContent = msg; if (field) form.elements[field]?.focus(); return false; };
+      const validate = () => {
+        if (val('name').length < 2) return fail('Please enter your full name.', 'name');
+        if (!/^[6-9]\d{9}$/.test(val('phone').replace(/\D/g, '').replace(/^91(?=\d{10}$)/, ''))) return fail('Please enter a 10-digit mobile number.', 'phone');
+        if (val('address').length < 8) return fail('Please enter your full address.', 'address');
+        if (val('city').length < 2) return fail('Please enter your city.', 'city');
+        if (!/^\d{6}$/.test(val('pin'))) return fail('Please enter a 6-digit PIN code.', 'pin');
+        if (val('state').length < 2) return fail('Please enter your state.', 'state');
+        if (val('email') && !/^\S+@\S+\.\S+$/.test(val('email'))) return fail('Please check the email address, or leave it empty.', 'email');
+        return true;
+      };
+      const phone = () => val('phone').replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '');
+      const addressLine = () => `${val('address').replace(/\s+/g, ' ')}, ${val('city')}, ${val('state')} - ${val('pin')}`;
+      const itemLines = (bag) => bag.map((l) => { const p = byCode.get(l.code); return `${l.qty} x ${p.code} ${p.name}, size ${l.size}, ${money(priceFor(p, l.size) * l.qty)}`; });
+      const orderText = (bag, sum, heading, extra = []) => [
+        `Namaste ${data.brand},`, '', heading, '', ...itemLines(bag).map((t, i) => `${i + 1}. ${t}`), '',
+        `Total: ${money(sum)} (delivery charges to be confirmed)`, ...extra, '',
+        `Name: ${val('name')}`, `Mobile: ${phone()}`, `Address: ${addressLine()}`,
+        ...(notes.value.trim() ? [`Notes: ${notes.value.trim()}`] : []),
+      ].join('\n');
+      const waUrl = (text) => `https://wa.me/${data.whatsapp}?text=${encodeURIComponent(text)}`;
+      const remember = () => { try { localStorage.setItem(SAVE, JSON.stringify(Object.fromEntries(fields.map((k) => [k, val(k)])))); } catch { /* ignore */ } };
+      const loadRazorpay = () => new Promise((resolve, reject) => {
+        if (window.Razorpay) return resolve();
+        const s = document.createElement('script'); s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        s.onload = () => resolve(); s.onerror = () => reject(new Error('load')); document.head.append(s);
+      });
+      const showDone = (title, body, text) => {
+        done.replaceChildren(el('h3', { textContent: title }), el('p', { textContent: body }),
+          el('a', { className: 'btn btn--wa', href: waUrl(text), target: '_blank', rel: 'noopener', textContent: 'Send order details on WhatsApp' }));
+        done.hidden = false; form.hidden = true; done.focus(); done.scrollIntoView({ block: 'center' });
+      };
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const { bag, bad, sum } = state();
+        if (!bag.length || bad.length || !validate()) return;
+        remember();
+        out.dataset.kind = '';
+        if (way() === 'cod') {
+          // No server here: the order exists only once the customer sends this message.
+          window.open(waUrl(orderText(bag, sum, 'I would like to place this CASH ON DELIVERY order:')), '_blank', 'noopener');
+          out.textContent = 'WhatsApp has opened with your order. It is placed only when you press send there.';
+          return;
+        }
+        go.disabled = true; out.textContent = 'Opening secure payment…';
+        try { await loadRazorpay(); } catch { go.disabled = false; return fail('The payment window could not be loaded. Check your connection, or choose cash on delivery / WhatsApp.'); }
+        const items = itemLines(bag).join(' | ');
+        const noteParts = {}; // Razorpay notes: each value up to 256 characters
+        for (let i = 0, n = 1; i < items.length && n <= 6; i += 250, n += 1) noteParts[`items_${n}`] = items.slice(i, i + 250);
+        const rzp = new window.Razorpay({
+          key: data.checkout.key,
+          amount: Math.round(sum * 100),
+          currency: data.currency || 'INR',
+          name: data.brand,
+          description: `${bag.reduce((n, l) => n + l.qty, 0)} piece(s): ${bag.map((l) => `${l.code} size ${l.size}`).join(', ')}`.slice(0, 250),
+          prefill: { name: val('name'), contact: `+91${phone()}`, ...(val('email') ? { email: val('email') } : {}) },
+          notes: { ...noteParts, customer: val('name').slice(0, 250), mobile: phone(), address: addressLine().slice(0, 250), ...(notes.value.trim() ? { customer_note: notes.value.trim().slice(0, 250) } : {}) },
+          theme: { color: '#1f4a3c' },
+          modal: { ondismiss: () => { go.disabled = false; out.textContent = 'Payment was not completed. Nothing has been charged by this page.'; } },
+          handler: (res) => {
+            const text = orderText(bag, sum, 'I have paid online for this order:', [`Razorpay payment ID: ${res.razorpay_payment_id}`]);
+            showDone('Payment received. Thank you!', `Payment ID ${res.razorpay_payment_id} for ${money(sum)}. Your order and address have gone to ${data.brand} with the payment. Send the details on WhatsApp too, so delivery can be confirmed quickly.`, text);
+            store.setBag([]);
+          },
+        });
+        rzp.on('payment.failed', (r) => { go.disabled = false; fail(`Payment failed${r?.error?.description ? `: ${r.error.description}` : ''}. You can try again.`); });
+        rzp.open();
+      });
+    }
   }
 }
 if (!spa) init();

@@ -53,17 +53,16 @@ export function init({ signal } = {}) {
       form.addEventListener('change', syncPrice); syncPrice();
     }
     form.querySelectorAll('input[type=radio][name=size]').forEach((r) => r.addEventListener('change', () => { status.textContent = ''; }));
-    // Buy now: opens the Razorpay payment form that covers the chosen size.
+    // Buy now: adds the chosen size to the bag and opens the checkout.
     root.querySelector('[data-buy-now]')?.addEventListener('click', () => {
       const s = sizeNow();
       if (!s) { status.textContent = 'Please choose a size first.'; form.querySelector('.pills')?.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
       if (s === 'custom') { status.textContent = `Size ${data.customFrom} and above is made to order. Please use Order on WhatsApp or the enquiry bag.`; return; }
-      const forms = [...root.querySelectorAll('[data-pay] form')];
-      const target = forms.find((f) => f.dataset.paySizes.split(',').includes(s)) || (forms.length === 1 ? forms[0] : null);
-      const button = target?.querySelector('.PaymentButton') || target?.querySelector('a, button');
-      if (!button) { status.textContent = 'Online payment could not be opened just now. Please use Order on WhatsApp.'; return; }
-      status.textContent = `In the payment form, set the quantity next to Size ${s}.`;
-      button.click();
+      if (prices && prices[s] == null) { status.textContent = 'This size has no listed price yet. Please use Order on WhatsApp.'; return; }
+      // Like "Buy now" in a shop: put this piece in the bag and go straight to checkout.
+      clamp();
+      store.add(code, Number(qty.value), s);
+      location.href = `${paths.page('bag')}${spa ? '' : '#checkout'}`;
     });
     // Share: the phone's share sheet where it exists, otherwise copy the link.
     root.querySelector('[data-share]')?.addEventListener('click', async () => {

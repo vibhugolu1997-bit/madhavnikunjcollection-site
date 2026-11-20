@@ -1,6 +1,6 @@
 // Enquiry bag page: edit quantities and sizes, remove designs, build the enquiry message.
-import { store, spa, paths } from './core.js?v=c5450103';
-import { byCode, buildMessage, money, priceFor, wireSend, data, CUSTOM_PREFIX } from './enquiry.js?v=c5450103';
+import { store, spa, paths } from './core.js?v=c6ea95ed';
+import { byCode, buildMessage, money, priceFor, wireSend, data, CUSTOM_PREFIX } from './enquiry.js?v=c6ea95ed';
 
 export function init({ signal } = {}) {
   const wrap = document.querySelector('[data-bag]');
@@ -253,12 +253,11 @@ export function init({ signal } = {}) {
           el('p', {}, 'Order ID: ', el('strong', { textContent: order.id })),
           el('p', { textContent: body }), mailLine,
           el('div', { className: 'btn-row' },
-            el('a', { className: 'btn', href: paths.page('invoice'), textContent: 'View invoice' }),
-            el('a', { className: 'btn btn--ghost', href: paths.page('collection'), textContent: 'Continue shopping' })));
+            el('a', { className: 'btn', href: paths.page('collection'), textContent: 'Continue shopping' })));
         done.hidden = false; form.hidden = true; done.focus(); done.scrollIntoView({ block: 'center' });
         if (shopMail === 'failed') mailLine.textContent = `We could not send your order details to ${data.brand} automatically. Please contact us with your Order ID so we can deliver it.`;
         sendCustomerMail(order).then((r) => {
-          if (r === 'sent') mailLine.textContent += `${mailLine.textContent ? ' ' : ''}A confirmation email with your invoice has been sent to ${order.customer.email}.`;
+          if (r === 'sent') mailLine.textContent += `${mailLine.textContent ? ' ' : ''}A confirmation email with your order details has been sent to ${order.customer.email}.`;
         });
       };
 

@@ -1,11 +1,11 @@
 // Router for the one-page demo build only (build/demo.mjs). The real site uses separate pre-rendered pages.
 // Each page lives in a <template data-page="name">; the #hash decides which one is shown.
-import './core.js?v=c5450103';
-import { init as hero } from './hero.js?v=c5450103';
-import { init as collection } from './collection.js?v=c5450103';
-import { init as product } from './product.js?v=c5450103';
-import { init as bag } from './bag.js?v=c5450103';
-import { init as finder } from './finder.js?v=c5450103';
+import './core.js?v=c6ea95ed';
+import { init as hero } from './hero.js?v=c6ea95ed';
+import { init as collection } from './collection.js?v=c6ea95ed';
+import { init as product } from './product.js?v=c6ea95ed';
+import { init as bag } from './bag.js?v=c6ea95ed';
+import { init as finder } from './finder.js?v=c6ea95ed';
 
 const main = document.getElementById('main');
 const templates = new Map([...document.querySelectorAll('template[data-page]')].map((t) => [t.dataset.page, t]));

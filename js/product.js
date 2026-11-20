@@ -1,6 +1,6 @@
 // Product page: thumbnails, quantity stepper, add to enquiry bag. The full-screen viewer is loaded only on request.
-import { store, spa, paths } from './core.js?v=76e789d6';
-import { sizeFrom, wireSize, byCode, money, data, copyText } from './enquiry.js?v=76e789d6';
+import { store, spa, paths } from './core.js?v=bddf9a06';
+import { sizeFrom, wireSize, byCode, money, data, copyText } from './enquiry.js?v=bddf9a06';
 
 export function init({ signal } = {}) {
   const root = document.querySelector('[data-product]');
@@ -31,7 +31,7 @@ export function init({ signal } = {}) {
 
     const opener = gallery.querySelector('[data-open]');
     opener.addEventListener('click', async () => {
-      const { openLightbox } = await import('./lightbox.js?v=76e789d6');
+      const { openLightbox } = await import('./lightbox.js?v=bddf9a06');
       openLightbox({ photos, imgBase, start: current, trigger: opener, onChange: show });
     });
 

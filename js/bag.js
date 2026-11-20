@@ -1,6 +1,6 @@
 // Enquiry bag page: edit quantities and sizes, remove designs, build the enquiry message.
-import { store, spa, paths } from './core.js?v=76e789d6';
-import { byCode, buildMessage, money, priceFor, wireSend, data, CUSTOM_PREFIX } from './enquiry.js?v=76e789d6';
+import { store, spa, paths } from './core.js?v=bddf9a06';
+import { byCode, buildMessage, money, priceFor, wireSend, data, CUSTOM_PREFIX } from './enquiry.js?v=bddf9a06';
 
 export function init({ signal } = {}) {
   const wrap = document.querySelector('[data-bag]');

@@ -1,6 +1,6 @@
 // "Find My Poshak": three steps — choose designs, add details, review the enquiry.
-import { store, spa, paths } from './core.js?v=76e789d6';
-import { buildMessage, wireSend, sizeFrom, wireSize } from './enquiry.js?v=76e789d6';
+import { store, spa, paths } from './core.js?v=bddf9a06';
+import { buildMessage, wireSend, sizeFrom, wireSize } from './enquiry.js?v=bddf9a06';
 
 export function init({ signal } = {}) {
   const form = document.querySelector('[data-finder]');

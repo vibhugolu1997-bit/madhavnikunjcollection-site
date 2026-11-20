@@ -1,6 +1,6 @@
 // Enquiry bag page: edit quantities and sizes, remove designs, build the enquiry message.
-import { store, spa, paths } from './core.js?v=2880e229';
-import { byCode, buildMessage, money, priceFor, wireSend, data, CUSTOM_PREFIX } from './enquiry.js?v=2880e229';
+import { store, spa, paths } from './core.js?v=c5450103';
+import { byCode, buildMessage, money, priceFor, wireSend, data, CUSTOM_PREFIX } from './enquiry.js?v=c5450103';
 
 export function init({ signal } = {}) {
   const wrap = document.querySelector('[data-bag]');
@@ -152,7 +152,7 @@ export function init({ signal } = {}) {
         const { bag, bad, sum } = state();
         total.textContent = bad.length || !bag.length ? '—' : money(sum);
         go.disabled = Boolean(bad.length) || !bag.length;
-        go.textContent = way() === 'cod' ? 'Place order on WhatsApp' : 'Pay now';
+        go.textContent = way() === 'cod' ? (data.checkout.mail ? 'Place order' : 'Place order on WhatsApp') : 'Pay now';
         if (bad.length) out.textContent = `Choose a size with a listed price for: ${bad.map((l) => byCode.get(l.code).name).join(', ')}. Designs priced on enquiry cannot be ordered here; remove them or send an enquiry below.`;
         else if (out.dataset.kind !== 'error') out.textContent = '';
       };
@@ -213,40 +213,52 @@ export function init({ signal } = {}) {
       });
       const saveOrder = (order) => { try { localStorage.setItem('kalakunj:lastOrder', JSON.stringify(order)); } catch { /* ignore */ } };
       // Confirmation email with the invoice inside it. Sent from this browser through EmailJS; only when it is set up.
-      const sendMail = async (order) => {
+      const mailParams = (order) => ({
+        customer_email: order.customer.email || 'not given', customer_name: order.customer.name,
+        order_id: order.id, order_date: new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
+        orders: [...order.items.map((i) => ({ name: `${i.code} ${i.name}`, size: i.size, qty: i.qty, amount: money(i.amount) })), ...(order.delivery != null ? [{ name: 'Delivery', size: '', qty: '', amount: order.delivery ? money(order.delivery) : 'Free' }] : [])], total: money(order.total),
+        payment: order.way === 'cod' ? `Cash on delivery: ${money(order.total)} to collect` : `Paid online (Razorpay ${order.paymentId})`,
+        customer_phone: order.customer.phone, customer_address: order.customer.address, customer_notes: order.notes || '-',
+        logo_url: `${data.checkout.site}/img/logo-mark-240.png`, site_url: data.checkout.site, brand: data.brand, whatsapp: `+${data.whatsapp}`,
+      });
+      // The courier label opens from a link in the shop's email; the order travels inside the link itself (after the #, so it is never sent to a server).
+      const labelUrl = (order) => {
+        const compact = { i: order.id, d: order.date, w: order.way, p: order.paymentId, t: order.total, s: order.subtotal, sh: order.delivery, n: order.customer.name, ph: order.customer.phone, a: order.customer.address, nt: order.notes, it: order.items.map((x) => [x.code, x.name, x.size, x.qty, x.amount]) };
+        const b64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(compact)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        return `${data.checkout.site}/label.html#${b64}`;
+      };
+      const emailjs = async (template, params) => {
         const m = data.checkout.mail;
-        if (!m) return 'off';
-        const to = order.customer.email || m.shop; // no customer email: the copy goes to the shop only
-        if (!to) return 'off';
         try {
-          const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ service_id: m.s, template_id: m.t, user_id: m.k, template_params: {
-              to_email: to, customer_email: order.customer.email || 'not given', customer_name: order.customer.name,
-              order_id: order.id, order_date: new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
-              orders: [...order.items.map((i) => ({ name: `${i.code} ${i.name}`, size: i.size, qty: i.qty, amount: money(i.amount) })), ...(order.delivery != null ? [{ name: 'Delivery', size: '', qty: '', amount: order.delivery ? money(order.delivery) : 'Free' }] : [])], total: money(order.total),
-              payment: order.way === 'cod' ? `Cash on delivery: ${money(order.total)} to pay on delivery` : `Paid online (Razorpay ${order.paymentId})`,
-              customer_phone: order.customer.phone, customer_address: order.customer.address, customer_notes: order.notes || '-',
-              logo_url: `${data.checkout.site}/img/logo-mark-240.png`, site_url: data.checkout.site, brand: data.brand, whatsapp: `+${data.whatsapp}`,
-            } }),
-          });
+          const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service_id: m.s, template_id: template, user_id: m.k, template_params: params }) });
           return res.ok ? 'sent' : 'failed';
         } catch { return 'failed'; }
       };
-      const showDone = (order, body, text, waLabel) => {
+      // The shop's copy is the order itself (address, items, courier label). 'off' when email is not set up.
+      const sendShopMail = (order) => {
+        const m = data.checkout.mail;
+        if (!m || !m.shop) return Promise.resolve('off');
+        return m.st ? emailjs(m.st, { ...mailParams(order), to_email: m.shop, label_url: labelUrl(order) }) : emailjs(m.t, { ...mailParams(order), to_email: m.shop });
+      };
+      const sendCustomerMail = (order) => {
+        const m = data.checkout.mail;
+        if (!m || !order.customer.email) return Promise.resolve('off');
+        return emailjs(m.t, { ...mailParams(order), to_email: order.customer.email });
+      };
+      const showDone = (order, body, shopMail) => {
         const mailLine = el('p', { className: 'hint', textContent: '' });
         done.replaceChildren(
           el('p', { className: 'checkout__jsk hi', lang: 'hi', textContent: '॥ जय श्री कृष्ण ॥' }),
-          el('h3', { textContent: order.way === 'cod' && !data.checkout.mail ? 'Jai Shri Krishna! Send your order on WhatsApp to place it.' : 'Jai Shri Krishna! Your order is placed.' }),
+          el('h3', { textContent: 'Jai Shri Krishna! Your order is placed.' }),
           el('p', {}, 'Order ID: ', el('strong', { textContent: order.id })),
           el('p', { textContent: body }), mailLine,
           el('div', { className: 'btn-row' },
-            el('a', { className: 'btn btn--wa', href: waUrl(text), target: '_blank', rel: 'noopener', textContent: waLabel }),
-            el('a', { className: 'btn btn--ghost', href: paths.page('invoice'), textContent: 'View invoice' })));
+            el('a', { className: 'btn', href: paths.page('invoice'), textContent: 'View invoice' }),
+            el('a', { className: 'btn btn--ghost', href: paths.page('collection'), textContent: 'Continue shopping' })));
         done.hidden = false; form.hidden = true; done.focus(); done.scrollIntoView({ block: 'center' });
-        sendMail(order).then((r) => {
-          if (r === 'sent') mailLine.textContent = order.customer.email ? `A confirmation email with your invoice has been sent to ${order.customer.email}.` : `Your order has been emailed to ${data.brand}.`;
-          else if (r === 'failed') mailLine.textContent = 'The confirmation email could not be sent. Your invoice is available with the button above.';
+        if (shopMail === 'failed') mailLine.textContent = `We could not send your order details to ${data.brand} automatically. Please contact us with your Order ID so we can deliver it.`;
+        sendCustomerMail(order).then((r) => {
+          if (r === 'sent') mailLine.textContent += `${mailLine.textContent ? ' ' : ''}A confirmation email with your invoice has been sent to ${order.customer.email}.`;
         });
       };
 
@@ -257,17 +269,26 @@ export function init({ signal } = {}) {
         remember();
         out.dataset.kind = '';
         if (way() === 'cod') {
-          // No server here: the order exists only once the customer sends this message.
           const order = makeOrder(bag, sum, 'cod');
+          if (!data.checkout.mail) {
+            // Email is not set up: the order can only reach the shop as a WhatsApp message the customer sends.
+            saveOrder(order);
+            window.open(waUrl(orderText(bag, sum, `I would like to place this CASH ON DELIVERY order (Order ID ${order.id}):`)), '_blank', 'noopener');
+            out.textContent = 'WhatsApp has opened with your order. It is placed only when you press send there.';
+            return;
+          }
+          // The order is placed by emailing it to the shop. If that fails, nothing is placed and the bag is kept.
+          go.disabled = true; out.textContent = 'Placing your order…';
+          const sent = await sendShopMail(order);
+          go.disabled = false;
+          if (sent !== 'sent') return fail('Your order could not be sent just now. Please check your internet connection and press Place order again.');
           saveOrder(order);
-          const text = orderText(bag, sum, `I would like to place this CASH ON DELIVERY order (Order ID ${order.id}):`);
-          window.open(waUrl(text), '_blank', 'noopener');
-          showDone(order, `${money(sum)} to pay in cash on delivery. WhatsApp has opened with your order: press send there so ${data.brand} receives it${data.checkout.mail ? ' on WhatsApp as well' : ''}.`, text, 'Open WhatsApp again');
+          showDone(order, `${money(sum)} to pay in cash on delivery. ${data.brand} has received your order and delivery address.`, 'sent');
           store.setBag([]);
           return;
         }
         go.disabled = true; out.textContent = 'Opening secure payment…';
-        try { await loadRazorpay(); } catch { go.disabled = false; return fail('The payment window could not be loaded. Check your connection, or choose cash on delivery / WhatsApp.'); }
+        try { await loadRazorpay(); } catch { go.disabled = false; return fail('The payment window could not be loaded. Check your connection, or choose cash on delivery.'); }
         const items = itemLines(bag).join(' | ');
         const noteParts = {}; // Razorpay notes: each value up to 256 characters
         for (let i = 0, n = 1; i < items.length && n <= 6; i += 250, n += 1) noteParts[`items_${n}`] = items.slice(i, i + 250);
@@ -282,12 +303,12 @@ export function init({ signal } = {}) {
           notes: { order_id: oid, ...noteParts, customer: val('name').slice(0, 250), mobile: phone(), address: addressLine().slice(0, 250), ...(notes.value.trim() ? { customer_note: notes.value.trim().slice(0, 250) } : {}) },
           theme: { color: '#1f4a3c' },
           modal: { ondismiss: () => { go.disabled = false; out.textContent = 'Payment was not completed. Nothing has been charged by this page.'; } },
-          handler: (res) => {
+          handler: async (res) => {
             const order = makeOrder(bag, sum, 'online', res.razorpay_payment_id, oid);
             saveOrder(order);
-            const text = orderText(bag, sum, `I have paid online for this order (Order ID ${order.id}):`, [`Razorpay payment ID: ${res.razorpay_payment_id}`]);
-            showDone(order, `Payment of ${money(sum)} received (Razorpay ID ${res.razorpay_payment_id}). Your order and address have gone to ${data.brand} with the payment. Send the details on WhatsApp too, so delivery can be confirmed quickly.`, text, 'Send order details on WhatsApp');
             store.setBag([]);
+            const sent = await sendShopMail(order);
+            showDone(order, `Payment of ${money(sum)} received (Razorpay ID ${res.razorpay_payment_id}). ${data.brand} has your order and delivery address.`, sent);
           },
         });
         rzp.on('payment.failed', (r) => { go.disabled = false; fail(`Payment failed${r?.error?.description ? `: ${r.error.description}` : ''}. You can try again.`); });

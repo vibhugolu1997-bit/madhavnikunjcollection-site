@@ -79,6 +79,12 @@ export function wireSend(scope, getText) {
       const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range); pre.focus();
     }
   });
+  const mail = scope.querySelector('[data-mail]');
+  if (mail && data.email) {
+    const update = () => { mail.href = `mailto:${data.email}?subject=${encodeURIComponent(`Enquiry for ${data.brand}`)}&body=${encodeURIComponent(getText())}`; };
+    mail.addEventListener('pointerdown', update); mail.addEventListener('focus', update); mail.addEventListener('click', update);
+    update();
+  }
   const wa = scope.querySelector('[data-wa]');
   if (wa && data.whatsapp) {
     const update = () => { wa.href = `https://wa.me/${data.whatsapp}?text=${encodeURIComponent(getText())}`; };

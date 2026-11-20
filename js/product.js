@@ -1,6 +1,6 @@
 // Product page: thumbnails, quantity stepper, add to enquiry bag. The full-screen viewer is loaded only on request.
-import { store, spa, paths } from './core.js?v=c6ea95ed';
-import { sizeFrom, wireSize, byCode, money, data, copyText } from './enquiry.js?v=c6ea95ed';
+import { store, spa, paths } from './core.js?v=adf15612';
+import { sizeFrom, wireSize, byCode, money, data, copyText } from './enquiry.js?v=adf15612';
 
 export function init({ signal } = {}) {
   const root = document.querySelector('[data-product]');
@@ -31,7 +31,7 @@ export function init({ signal } = {}) {
 
     const opener = gallery.querySelector('[data-open]');
     opener.addEventListener('click', async () => {
-      const { openLightbox } = await import('./lightbox.js?v=c6ea95ed');
+      const { openLightbox } = await import('./lightbox.js?v=adf15612');
       openLightbox({ photos, imgBase, start: current, trigger: opener, onChange: show });
     });
 
@@ -57,8 +57,8 @@ export function init({ signal } = {}) {
     root.querySelector('[data-buy-now]')?.addEventListener('click', () => {
       const s = sizeNow();
       if (!s) { status.textContent = 'Please choose a size first.'; form.querySelector('.pills')?.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
-      if (s === 'custom') { status.textContent = `Size ${data.customFrom} and above is made to order. Please use Order on WhatsApp or the enquiry bag.`; return; }
-      if (prices && prices[s] == null) { status.textContent = 'This size has no listed price yet. Please use Order on WhatsApp.'; return; }
+      if (s === 'custom') { status.textContent = `Size ${data.customFrom} and above is made to order. Please add it to your enquiry bag and send an enquiry.`; return; }
+      if (prices && prices[s] == null) { status.textContent = 'This size has no listed price yet. Please add it to your enquiry bag and send an enquiry.'; return; }
       // Like "Buy now" in a shop: put this piece in the bag and go straight to checkout.
       clamp();
       store.add(code, Number(qty.value), s);

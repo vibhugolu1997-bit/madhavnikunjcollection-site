@@ -1,5 +1,5 @@
 // Home showroom: switch between featured designs, plus an optional pointer tilt.
-import { spa } from './core.js?v=c6ea95ed';
+import { spa } from './core.js?v=adf15612';
 
 export function init({ signal } = {}) {
   const room = document.querySelector('[data-showroom]');

@@ -91,7 +91,7 @@ if (panel && opener) {
   };
   const rupee = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
   const priceOf = (p) => {
-    if (p.prices) { const v = Object.values(p.prices); const lo = Math.min(...v); const hi = Math.max(...v); return lo === hi ? rupee(lo) : `${rupee(lo)} to ${rupee(hi)}`; }
+    if (p.prices) { const v = Object.values(p.prices); const lo = Math.min(...v); const hi = Math.max(...v); return rupee(lo); }
     return p.price ? rupee(p.price) : 'Price on enquiry';
   };
   const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; };

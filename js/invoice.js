@@ -1,6 +1,6 @@
 // Invoice page: shows the last order placed from this device (kept in the browser, not on a server).
-import { spa } from './core.js';
-import { money } from './enquiry.js';
+import { spa } from './core.js?v=2880e229';
+import { money } from './enquiry.js?v=2880e229';
 
 export function init() {
   const box = document.querySelector('[data-invoice]');

@@ -1,5 +1,5 @@
 // Collection: search, filters, sort, favourites. The grid is already in the HTML; this only shows/hides/reorders it.
-import { store, spa } from './core.js';
+import { store, spa } from './core.js?v=2880e229';
 
 export function init({ signal } = {}) {
   const form = document.querySelector('[data-tools]');

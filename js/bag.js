@@ -1,6 +1,6 @@
 // Enquiry bag page: edit quantities and sizes, remove designs, build the enquiry message.
-import { store, spa, paths } from './core.js';
-import { byCode, buildMessage, money, priceFor, wireSend, data, CUSTOM_PREFIX } from './enquiry.js';
+import { store, spa, paths } from './core.js?v=2880e229';
+import { byCode, buildMessage, money, priceFor, wireSend, data, CUSTOM_PREFIX } from './enquiry.js?v=2880e229';
 
 export function init({ signal } = {}) {
   const wrap = document.querySelector('[data-bag]');
@@ -158,6 +158,16 @@ export function init({ signal } = {}) {
       };
       document.addEventListener('kk:change', sync, { signal });
       form.addEventListener('change', () => { out.dataset.kind = ''; sync(); });
+      // Keep what has been typed, so nothing is lost if the page reloads or the phone switches apps.
+      form.addEventListener('input', () => { try { localStorage.setItem(SAVE, JSON.stringify(Object.fromEntries(fields.map((k) => [k, val(k)])))); } catch { /* ignore */ } });
+      // Enter / "Next" on the phone keyboard moves to the next field instead of submitting a half-filled form.
+      form.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' || e.target.tagName !== 'INPUT' || e.target.type === 'radio') return;
+        e.preventDefault();
+        const order = fields.map((k) => form.elements[k]).filter(Boolean);
+        const next = order[order.indexOf(e.target) + 1];
+        if (next) next.focus(); else e.target.blur();
+      });
       sync();
       if (location.hash === '#checkout') form.scrollIntoView({ block: 'start' });
 

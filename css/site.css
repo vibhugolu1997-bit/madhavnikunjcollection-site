@@ -452,3 +452,7 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
   .shiplabel { break-after: page; }
   .shiplabel, .bill { max-width: none; width: 100mm; margin: 0; }
 }
+
+/* Bag rows and search results reuse the card title style, but must not get the card's full-area link overlay: it covered Remove, quantity and the checkout fields. */
+.bag-item .card__name a::after { content: none; }
+.bag-item { position: relative; }

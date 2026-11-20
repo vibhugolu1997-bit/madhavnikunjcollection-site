@@ -1,6 +1,6 @@
 // Enquiry bag page: edit quantities and sizes, remove designs, build the enquiry message.
-import { store, spa, paths } from './core.js?v=af877f9e';
-import { byCode, buildMessage, money, priceFor, wireSend, data, CUSTOM_PREFIX } from './enquiry.js?v=af877f9e';
+import { store, spa, paths } from './core.js?v=76e789d6';
+import { byCode, buildMessage, money, priceFor, wireSend, data, CUSTOM_PREFIX } from './enquiry.js?v=76e789d6';
 
 export function init({ signal } = {}) {
   const wrap = document.querySelector('[data-bag]');
@@ -64,7 +64,9 @@ export function init({ signal } = {}) {
         remove.addEventListener('click', () => {
           const next = lines(); next.splice(i, 1); store.setBag(next);
           status.textContent = `${p.name} removed from your enquiry bag.`;
-          (list.querySelector('a, button, input') || document.querySelector('[data-bag-empty] a'))?.focus();
+          // Keep the page where it is: move focus to the Remove button now in this position, without scrolling.
+          const left = list.querySelectorAll('.bag-item .link-btn');
+          (left[Math.min(i, left.length - 1)] || document.querySelector('[data-bag-empty] a'))?.focus({ preventScroll: true });
         });
         return el('li', { className: 'bag-item' },
           img,
